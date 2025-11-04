@@ -1,22 +1,76 @@
-<h1 style="text-align:center;"> ml_template </h1>
+<h1 style="text-align:center;"> LoRAPID </h1>
 
-A repository template for machine learning projects, following conventions and best practices.
+LoRAPID is a repository for medical image segmentation research, focused on 
+polyp detection in endoscopic images. The project explores the effectiveness of 
+LoRA (Low-Rank Adaptation) for medical image segmentation tasks, specifically 
+comparing full fine-tuning vs. parameter-efficient fine-tuning approaches on the 
+Kvasir-SEG dataset.
 
-## Structure
+## Dataset
 
--   The `src` layout allows for the easy implementation of a package building pipeline, if ever wanted.
-    -   Its inner configuration was engineered to enforce the modularity that PyTorch Lightning standardizes.
--   The `environment.yaml` file allows you to easily track and configure the environment, ideally through Conda.
--   The `conf` directory serves the purpose of organizing `.yaml` configuration files for the Hydra package.
-    -   All the subdirectories configure each single module of the package.
--   The `tests` directory has to be used for unit and pipeline testing.
--   The utility files serve the following purposes:
-    -   `.gitignore` keeps the repository clean.
-    -   `Makefile` simplifies repetitive commands.
-    -   `.pre-commit-config.yaml` automatically executes linting and formatting before every commit, keeping code consistent.
+You shall download the dataset at the following link
+[https://datasets.simula.no/downloads/kvasir-seg.zip](https://datasets.simula.no/downloads/kvasir-seg.zip) 
 
-# TODOS:
+The Kvasir-SEG dataset is a medical image dataset specifically designed for polyp segmentation in endoscopic images. The dataset contains:
 
--   [ ] Transform defaults in `default_classifiy` and `default_segment`;
-    -   [ ] Add the segmentation defaults;
--   [ ] Improve readme;
+- **Images**: Endoscopic images of the GI tract containing polyps
+- **Masks**: Binary segmentation masks where the polyp regions are marked
+- **Size**: 1000 image-mask pairs for training and validation
+- **Task**: Semantic segmentation to identify and segment polyp regions
+
+To use the dataset with this project, you must place it in the following directory structure:
+```
+LoRAPID/
+├── data/
+│   └── Kvasir-SEG/
+│       ├── images/
+│       │   ├── cju0bygl98aar07367zog10cj.jpg
+│       │   ├── cju0byglb8abs073685yd3kjn.jpg
+│       │   └── ... (998 more image files)
+│       └── masks/
+│           ├── cju0bygl98aar07367zog10cj.jpg
+│           ├── cju0byglb8abs073685yd3kjn.jpg
+│           └── ... (998 more mask files)
+```
+
+The dataset is organized in two directories:
+- `data/Kvasir-SEG/images/`: Contains the endoscopic images in RGB format
+- `data/Kvasir-SEG/masks/`: Contains the corresponding binary masks where polyps are labeled as white (255) and background as black (0)
+
+During training, the images are preprocessed with the following augmentations:
+- Resize to 512x512 pixels
+- Horizontal flipping (50% probability)
+- Random brightness and contrast adjustments (20% probability)
+
+## Scripts
+
+### Training SegFormer without LoRA
+
+To train the SegFormer model without LoRA (full fine-tuning):
+
+```bash
+python scripts/train_segformer.py --epochs 30 --lr 5e-5 --save-dir my_experiment
+```
+
+Additional options:
+- `--epochs`: Number of training epochs (default: 30)
+- `--lr`: Learning rate (default: 5e-5)
+- `--save-dir`: Directory name to save the model (required)
+- `--seed`: Random seed for reproducibility (default: 42)
+
+### Training SegFormer with LoRA
+
+To train the SegFormer model with LoRA (parameter-efficient fine-tuning):
+
+```bash
+python scripts/train_segformer_lora.py --epochs 30 --lr 5e-5 --rank 8 --lora-alpha 32 --lora-dropout 0.1 --save-dir my_lora_experiment
+```
+
+Additional options:
+- `--epochs`: Number of training epochs (default: 30)
+- `--lr`: Learning rate (default: 5e-5)
+- `--rank`: LoRA rank (default: 8)
+- `--lora-alpha`: LoRA alpha parameter (default: 32)
+- `--lora-dropout`: LoRA dropout rate (default: 0.1)
+- `--save-dir`: Directory name to save the model (required)
+- `--seed`: Random seed for reproducibility (default: 42)

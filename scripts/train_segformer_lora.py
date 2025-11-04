@@ -11,17 +11,33 @@ from transformers import (
 )
 from argparse import ArgumentParser
 from lorapid import kvasir_dataset, compute_metrics, segformer, set_seed
-import time
+from peft import get_peft_model, LoraConfig
+import warnings
 import yaml
 import pandas as pd
+import time
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
-def main(epochs, lr, save_dir):
+def main(epochs, lr, r, lora_alpha, lora_dropout, save_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     test_size = 0.2
-    model, model_name, _ = segformer()
+    model, model_name, modules = segformer()
+
+    peft_config = LoraConfig(
+        r=r,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        target_modules=modules,
+    )
+
+    model = get_peft_model(model, peft_config)
+
+    model.print_trainable_parameters()
+
     train_dataset, test_dataset = kvasir_dataset(model_name, test_size)
 
     training_args = TrainingArguments(
@@ -47,7 +63,7 @@ def main(epochs, lr, save_dir):
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=train_dataset,
+        train_dataset=train_dataset[:20],
         eval_dataset=test_dataset,
         compute_metrics=compute_metrics,  # type: ignore
     )
@@ -75,10 +91,21 @@ if __name__ == "__main__":
     ap = ArgumentParser()
     ap.add_argument("--epochs", default=30)
     ap.add_argument("--lr", default=5e-5)
+    ap.add_argument("--rank", default=8)
+    ap.add_argument("--lora-alpha", default=32)
+    ap.add_argument("--lora-dropout", default=0.1)
     ap.add_argument("--save-dir")
     ap.add_argument("--seed", default=42)
+
     args = ap.parse_args()
 
     set_seed(args.seed)
 
-    main(args.epochs, args.lr, args.save_dir)
+    main(
+        args.epochs,
+        args.lr,
+        args.rank,
+        args.lora_alpha,
+        args.lora_dropout,
+        args.save_dir,
+    )
