@@ -63,7 +63,7 @@ def main(epochs, lr, r, lora_alpha, lora_dropout, save_dir):
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=train_dataset[:20],
+        train_dataset=train_dataset,
         eval_dataset=test_dataset,
         compute_metrics=compute_metrics,  # type: ignore
     )
