@@ -1,4 +1,3 @@
-import csv
 import random
 import torch
 import numpy as np
@@ -8,6 +7,7 @@ import matplotlib.pyplot as plt
 from torch import nn
 import evaluate
 from sklearn.metrics import f1_score
+import pandas as pd
 
 
 def set_seed(seed: int):
@@ -69,27 +69,14 @@ class Metrics:
 
     def save_yaml(self, vars: dict, file_name: str):
         with open(self.save_dir + file_name + "yaml", "w") as f:
-            yaml.safe_dump(vars, f, sort_keys=False)
+            yaml.dump(vars, f, sort_keys=False, indent=2)
 
-    def store_args(self, args):
-        self.save_yaml(args, "config")
+    def store_history(self, log):
+        df = pd.DataFrame(log)
+        df.to_csv(self.save_dir + "history.csv")
 
-    def store_metrics(self, **args):
+    def store_metrics(self, args):
         self.save_yaml(args, "metrics")
-
-    def store_training(self, training_log):
-        with open(self.save_dir + "metrics.csv", "w", newline="") as f:
-            w = csv.writer(f)
-            w.writerow(["epoch", "train_loss", "val_loss", "val_dice"])
-            for i, (tl, vl, vd) in enumerate(
-                zip(
-                    training_log["train_losses"],
-                    training_log["val_losses"],
-                    training_log["val_dices"],
-                ),
-                start=1,
-            ):
-                w.writerow([i, tl, vl, vd])
 
     def plot(self, Y, x_label, y_label, title):
         plt.figure(figsize=(12, 10))
@@ -98,6 +85,9 @@ class Metrics:
         plt.xlabel(x_label)
         plt.ylabel(y_label)
         plt.legend()
+        plt.xlim(left=0)
+        plt.ylim(bottom=0)
+
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(self.save_dir + title.replace(" ", "_"), dpi=120)
