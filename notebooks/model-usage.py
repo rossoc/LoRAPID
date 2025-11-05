@@ -20,11 +20,8 @@
 
 # %%
 import torch
-from transformers import (
-    TrainingArguments,
-    Trainer,
-)
-from lorapid import kvasir_dataset, compute_metrics, segformer, set_seed
+from transformers import TrainingArguments, Trainer, EarlyStoppingCallback
+from lorapid import kvasir_dataset, compute_metrics, segformer, set_seed, Metrics
 import time
 import yaml
 import pandas as pd
@@ -63,18 +60,19 @@ def train_segformer_fft(epochs, lr, save_dir):
     test_size = 0.2
     model, model_name, _ = segformer()
     train_dataset, test_dataset = kvasir_dataset(model_name, test_size)
+    N = len(train_dataset)
 
     training_args = TrainingArguments(
         output_dir="./outputs/" + save_dir,
         num_train_epochs=epochs,
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
-        save_steps=0,
-        eval_steps=len(train_dataset),
-        logging_steps=int(len(train_dataset) / 5),
+        save_steps=N,
+        eval_steps=N,
+        logging_steps=N / 5,
         learning_rate=lr,
         save_total_limit=2,
-        prediction_loss_only=True,
+        prediction_loss_only=False,
         remove_unused_columns=True,
         push_to_hub=False,
         report_to=None,
@@ -90,6 +88,7 @@ def train_segformer_fft(epochs, lr, save_dir):
         train_dataset=train_dataset,
         eval_dataset=test_dataset,
         compute_metrics=compute_metrics,  # type: ignore
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=N * 5)],
     )
 
     print("Starting training...")
@@ -109,11 +108,14 @@ def train_segformer_fft(epochs, lr, save_dir):
     df = pd.DataFrame(trainer.state.log_history)
     df.to_csv(f"./outputs/{save_dir}/training_history.csv", index=False)
     trainer.save_model(f"./outputs/{save_dir}/final")
+
+    metrics = Metrics(f"./outputs/{save_dir}/")
+    metrics.plot_curves(trainer.state.log_history)
     return trainer
 
 
 # %%
-epochs = 30
+epochs = 5
 learning_rate = 5e-5
 save_dir = "test_transformer_fft"
 
@@ -121,6 +123,17 @@ save_dir = "test_transformer_fft"
 # %%
 fft_trainer = train_segformer_fft(epochs, learning_rate, save_dir)
 
+
+# %%
+fft_trainer.state.log_history
+# %%
+Y = {
+    "Evaluation": [
+        entry["eval_mean_dice"]
+        for entry in fft_trainer.state.log_history
+        if entry["epoch"] % 1 == 0 and "eval_mean_dice" in entry.keys()
+    ],
+}
 
 # %% [markdown]
 # ## Train
@@ -149,18 +162,19 @@ def train_segformer_lora(epochs, lr, r, lora_alpha, lora_dropout, save_dir):
     model.print_trainable_parameters()
 
     train_dataset, test_dataset = kvasir_dataset(model_name, test_size)
+    N = len(train_dataset)
 
     training_args = TrainingArguments(
         output_dir="./outputs/" + save_dir,
         num_train_epochs=epochs,
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
-        save_steps=0,
-        eval_steps=len(train_dataset),
-        logging_steps=int(len(train_dataset) / 5),
+        save_steps=N,
+        eval_steps=N,
+        logging_steps=N,
         learning_rate=lr,
         save_total_limit=2,
-        prediction_loss_only=True,
+        prediction_loss_only=False,
         remove_unused_columns=True,
         push_to_hub=False,
         report_to=None,
@@ -176,6 +190,7 @@ def train_segformer_lora(epochs, lr, r, lora_alpha, lora_dropout, save_dir):
         train_dataset=train_dataset,
         eval_dataset=test_dataset,
         compute_metrics=compute_metrics,  # type: ignore
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=N * 5)],
     )
 
     print("Starting training...")
@@ -195,6 +210,9 @@ def train_segformer_lora(epochs, lr, r, lora_alpha, lora_dropout, save_dir):
     df = pd.DataFrame(trainer.state.log_history)
     df.to_csv(f"./outputs/{save_dir}/training_history.csv", index=False)
     trainer.save_model(f"./outputs/{save_dir}/final")
+
+    metrics = Metrics(f"./outputs/{save_dir}/")
+    metrics.plot_curves(trainer.state.log_history)
     return trainer
 
 

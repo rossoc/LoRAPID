@@ -8,9 +8,10 @@ import torch
 from transformers import (
     TrainingArguments,
     Trainer,
+    EarlyStoppingCallback,
 )
 from argparse import ArgumentParser
-from lorapid import kvasir_dataset, compute_metrics, segformer, set_seed
+from lorapid import kvasir_dataset, compute_metrics, segformer, set_seed, Metrics
 import time
 import yaml
 import pandas as pd
@@ -23,19 +24,22 @@ def main(epochs, lr, save_dir):
     test_size = 0.2
     model, model_name, _ = segformer()
     train_dataset, test_dataset = kvasir_dataset(model_name, test_size)
+    N = len(train_dataset)
 
     training_args = TrainingArguments(
         output_dir="./outputs/" + save_dir,
         num_train_epochs=epochs,
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
-        save_steps=len(train_dataset),
-        eval_steps=len(train_dataset),
-        logging_steps=int(len(train_dataset) / 5),
+        save_steps=N,
+        eval_steps=N,
+        logging_steps=N / 5,
         learning_rate=lr,
         save_total_limit=2,
         prediction_loss_only=False,
         remove_unused_columns=True,
+        push_to_hub=False,
+        report_to=None,
         eval_strategy="steps",
         save_strategy="steps",
         load_best_model_at_end=True,
@@ -48,6 +52,7 @@ def main(epochs, lr, save_dir):
         train_dataset=train_dataset,
         eval_dataset=test_dataset,
         compute_metrics=compute_metrics,  # type: ignore
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=N * 5)],
     )
 
     print("Starting training...")
@@ -56,9 +61,9 @@ def main(epochs, lr, save_dir):
     end_time = time.time() - start_time
 
     all_metrics = {
+        "training_history": trainer.state.log_history,
         "final_evaluation": trainer.evaluate(),
         "training_time": end_time,
-        "training_history": trainer.state.log_history,
     }
 
     with open(f"./outputs/{save_dir}/all_metrics.json", "w") as f:
@@ -67,6 +72,10 @@ def main(epochs, lr, save_dir):
     df = pd.DataFrame(trainer.state.log_history)
     df.to_csv(f"./outputs/{save_dir}/training_history.csv", index=False)
     trainer.save_model(f"./outputs/{save_dir}/final")
+
+    metrics = Metrics(f"./outputs/{save_dir}/")
+    metrics.plot_curves(trainer.state.log_history)
+    return trainer
 
 
 if __name__ == "__main__":

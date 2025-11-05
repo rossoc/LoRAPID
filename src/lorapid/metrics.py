@@ -73,7 +73,7 @@ class Metrics:
         self.save_dir = save_dir
 
     def save_yaml(self, vars: dict, file_name: str):
-        with open(self.save_dir / file_name + "yaml", "w") as f:
+        with open(self.save_dir + file_name + "yaml", "w") as f:
             yaml.safe_dump(vars, f, sort_keys=False)
 
     def store_args(self, args):
@@ -83,7 +83,7 @@ class Metrics:
         self.save_yaml(args, "metrics")
 
     def store_training(self, training_log):
-        with open(self.save_dir / "metrics.csv", "w", newline="") as f:
+        with open(self.save_dir + "metrics.csv", "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["epoch", "train_loss", "val_loss", "val_dice"])
             for i, (tl, vl, vd) in enumerate(
@@ -97,31 +97,45 @@ class Metrics:
                 w.writerow([i, tl, vl, vd])
 
     def plot(self, Y, x_label, y_label, title):
-        _, y = Y.sample()
-        plt.figure(size=(12, 10))
-
+        plt.figure(figsize=(12, 10))
         for k, y in Y.items():
             plt.plot(y, label=k)
-
         plt.xlabel(x_label)
         plt.ylabel(y_label)
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(self.save_dir / title.replace(" ", "_"), dpi=120)
+        plt.savefig(self.save_dir + title.replace(" ", "_"), dpi=120)
         plt.close()
 
-    def plot_curves(self, tr_losses, eval_losses, eval_dices):
+    def plot_curves(self, log):
         self.plot(
-            {"Training": tr_losses, "Evaluation": eval_losses},
+            Y={
+                "Training": [
+                    entry["loss"]
+                    for entry in log
+                    if entry["epoch"] % 1 == 0 and "loss" in entry.keys()
+                ],
+                "Evaluation": [
+                    entry["eval_loss"]
+                    for entry in log
+                    if entry["epoch"] % 1 == 0 and "eval_loss" in entry.keys()
+                ],
+            },
             x_label="Epochs",
-            y_label="Loss",
-            title="Loss curve",
+            y_label="Losses",
+            title="Losses over Epochs",
         )
 
         self.plot(
-            {"Evaluation": eval_dices},
+            Y={
+                "Evaluation": [
+                    entry["eval_mean_dice"]
+                    for entry in log
+                    if entry["epoch"] % 1 == 0 and "eval_mean_dice" in entry.keys()
+                ],
+            },
             x_label="Epochs",
             y_label="Dice",
-            title="Dice Curve",
+            title="Dice over Epochs",
         )
