@@ -1,6 +1,6 @@
-<h1 style="text-align:center;"> LoRAPID </h1>
+<h1 style="text-align:center;"> SEG-PEFT </h1>
 
-LoRAPID is a repository for medical image segmentation research, focused on 
+SEG-PEFT is a repository for medical image segmentation research, focused on 
 polyp detection in endoscopic images. The project explores the effectiveness of 
 LoRA (Low-Rank Adaptation) for medical image segmentation tasks, specifically 
 comparing full fine-tuning vs. parameter-efficient fine-tuning approaches on the 
@@ -20,7 +20,7 @@ The Kvasir-SEG dataset is a medical image dataset specifically designed for poly
 
 To use the dataset with this project, you must place it in the following directory structure:
 ```
-LoRAPID/
+SEG-PEFT/
 ├── data/
 │   └── Kvasir-SEG/
 │       ├── images/
@@ -50,8 +50,8 @@ Forst of all you must execute the following commmands to clone and install the
 dependencies:
 
 ```sh
-git clone https://github.com/rossoc/LoRAPID
-cd LoRAPID
+git clone https://github.com/rossoc/SEG-PEFT
+cd SEG-PEFT
 pip install -r requirements
 ```
 

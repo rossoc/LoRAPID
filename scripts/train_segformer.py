@@ -11,7 +11,7 @@ from transformers import (
     EarlyStoppingCallback,
 )
 from argparse import ArgumentParser
-from lorapid import kvasir_dataset, compute_metrics, segformer, set_seed, Metrics
+from segpeft import kvasir_dataset, compute_metrics, segformer, set_seed, Metrics
 import time
 import yaml
 import pandas as pd

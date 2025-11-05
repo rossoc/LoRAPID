@@ -1,5 +1,3 @@
-"""Metrics module for LoRAPID project."""
-
 import csv
 import random
 import torch

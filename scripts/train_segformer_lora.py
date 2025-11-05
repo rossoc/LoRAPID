@@ -7,7 +7,7 @@ This script trains a segmentation model to identify polyps in medical images.
 import torch
 from transformers import TrainingArguments, Trainer, EarlyStoppingCallback
 from argparse import ArgumentParser
-from lorapid import kvasir_dataset, compute_metrics, segformer, set_seed, Metrics
+from segpeft import kvasir_dataset, compute_metrics, segformer, set_seed, Metrics
 from peft import get_peft_model, LoraConfig
 import warnings
 import yaml
