@@ -201,7 +201,7 @@ def create_plots(metrics_dict: Dict):
 
         ax.set_xlabel(r"LoRA $\alpha$", fontsize=14)
         ax.set_ylabel("Dice", fontsize=14)
-        ax.set_title(r"LoRA $\alpha$ vs Final Evaluation Dice", fontsize=14)
+        ax.set_title(r"LoRA $\alpha$ vs Dice", fontsize=14)
         ax.tick_params(
             axis="both", which="major", labelsize=14
         )  # Increase tick label font size
@@ -322,7 +322,7 @@ def create_plots(metrics_dict: Dict):
                 ax.scatter(
                     training_time,
                     final_dice,
-                    label=f"Full Fine-tuning ({folder_name})",
+                    label=f"Full Fine-tuning",
                     marker="x",
                     s=200,
                     linewidth=3,
@@ -330,7 +330,7 @@ def create_plots(metrics_dict: Dict):
                 # No label for full fine-tuning as requested
 
         ax.set_xlabel("Training Time (seconds)", fontsize=14)
-        ax.set_ylabel("Final Evaluation Dice", fontsize=14)
+        ax.set_ylabel("Dice", fontsize=14)
         ax.set_title("Dice vs Training Time", fontsize=14)
         ax.tick_params(
             axis="both", which="major", labelsize=14
