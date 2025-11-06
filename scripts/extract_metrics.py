@@ -11,6 +11,9 @@ from typing import Dict, List
 from segpeft.metrics import Metrics
 import matplotlib.pyplot as plt
 import numpy as np
+import zipfile
+import tempfile
+import shutil
 
 
 def extract_metrics_from_folder(folder_path: str) -> Dict:
@@ -93,6 +96,31 @@ def extract_all_metrics(outputs_dir: str = "./outputs") -> Dict:
                     results[folder_name] = metrics
                 except Exception as e:
                     print(f"Error processing {folder_name}: {str(e)}")
+            else:
+                # Some folders have the files in a subfolder (like 'final', or in the case of the non-results folders,
+                # the files are directly in a subfolder like lora_r4_alpha16/lora_r4_alpha16/)
+                for subfolder_name in os.listdir(folder_path):
+                    subfolder_path = os.path.join(folder_path, subfolder_name)
+                    if os.path.isdir(subfolder_path):
+                        sub_csv_path = os.path.join(
+                            subfolder_path, "training_history.csv"
+                        )
+                        sub_yaml_path = os.path.join(subfolder_path, "all_metrics.json")
+
+                        if os.path.exists(sub_csv_path) and os.path.exists(
+                            sub_yaml_path
+                        ):
+                            print(f"Processing {folder_name}/{subfolder_name}...")
+                            try:
+                                metrics = extract_metrics_from_folder(subfolder_path)
+                                results[folder_name] = (
+                                    metrics  # Use parent folder name as key
+                                )
+                                break  # Found the files, stop searching in subfolders
+                            except Exception as e:
+                                print(
+                                    f"Error processing {folder_name}/{subfolder_name}: {str(e)}"
+                                )
 
     return results
 
@@ -163,29 +191,21 @@ def create_plots(metrics_dict: Dict):
                 ranks[rank]["dices"].append(final_eval_dice)
                 ranks[rank]["folders"].append(folder_name)
 
-        # Plot for each rank, connecting the dots
+        # Plot for each rank, without connecting the dots and without alpha value labels
         for rank, data in ranks.items():
-            # Sort by alpha to have a proper line
+            # Sort by alpha
             sorted_data = sorted(zip(data["alphas"], data["dices"], data["folders"]))
             sorted_alphas, sorted_dices, sorted_folders = zip(*sorted_data)
 
-            ax.plot(sorted_alphas, sorted_dices, "o-", label=f"r={rank}", markersize=8)
+            ax.scatter(sorted_alphas, sorted_dices, label=f"r={rank}", s=80, zorder=5)
 
-            # Add alpha value labels to each point
-            for x, y, alpha_val in zip(sorted_alphas, sorted_dices, sorted_alphas):
-                ax.annotate(
-                    f"{alpha_val}",
-                    (x, y),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    fontsize=9,
-                )
-
-        ax.set_xlabel("LoRA Alpha")
-        ax.set_ylabel("Final Evaluation Dice")
-        ax.set_title("LoRA Alpha vs Final Evaluation Dice (by Rank)")
-        ax.legend()
+        ax.set_xlabel(r"LoRA $\alpha$", fontsize=14)
+        ax.set_ylabel("Dice", fontsize=14)
+        ax.set_title(r"LoRA $\alpha$ vs Final Evaluation Dice", fontsize=14)
+        ax.tick_params(
+            axis="both", which="major", labelsize=14
+        )  # Increase tick label font size
+        ax.legend(fontsize=14)
         ax.grid(True)
         plt.tight_layout()
         plt.savefig("./outputs/lora_alpha_vs_dice.png", dpi=120)
@@ -243,10 +263,13 @@ def create_plots(metrics_dict: Dict):
                 linestyle="-",
             )
 
-        ax.set_xlabel("Epochs")
-        ax.set_ylabel("Loss")
-        ax.set_title("Epochs vs Loss - Best LoRA vs Full Fine-tuning")
-        ax.legend()
+        ax.set_xlabel("Epochs", fontsize=14)
+        ax.set_ylabel("Loss", fontsize=14)
+        ax.set_title("Epochs vs Loss - Best LoRA vs Full Fine-tuning", fontsize=14)
+        ax.tick_params(
+            axis="both", which="major", labelsize=14
+        )  # Increase tick label font size
+        ax.legend(fontsize=14)
         ax.grid(True)
         plt.tight_layout()
         plt.savefig("./outputs/epochs_vs_loss.png", dpi=120)
@@ -275,9 +298,9 @@ def create_plots(metrics_dict: Dict):
                 ranks[rank]["alphas"].append(alpha)  # Store alpha for labeling
                 ranks[rank]["folders"].append(folder_name)
 
-        # Plot for each rank, connecting the dots
+        # Plot for each rank, without connecting the dots (as requested)
         for rank, data in ranks.items():
-            ax.plot(data["times"], data["dices"], "o-", label=f"r={rank}", markersize=8)
+            ax.scatter(data["times"], data["dices"], label=f"r={rank}", s=80, zorder=5)
 
             # Add alpha value labels to each point
             for x, y, alpha_val in zip(data["times"], data["dices"], data["alphas"]):
@@ -287,7 +310,8 @@ def create_plots(metrics_dict: Dict):
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
-                    fontsize=9,
+                    fontsize=14,
+                    zorder=6,
                 )
 
         # Plot baseline (full fine-tuning) separately
@@ -305,10 +329,13 @@ def create_plots(metrics_dict: Dict):
                 )
                 # No label for full fine-tuning as requested
 
-        ax.set_xlabel("Training Time (seconds)")
-        ax.set_ylabel("Final Evaluation Dice")
-        ax.set_title("Dice vs Training Time")
-        ax.legend()
+        ax.set_xlabel("Training Time (seconds)", fontsize=14)
+        ax.set_ylabel("Final Evaluation Dice", fontsize=14)
+        ax.set_title("Dice vs Training Time", fontsize=14)
+        ax.tick_params(
+            axis="both", which="major", labelsize=14
+        )  # Increase tick label font size
+        ax.legend(fontsize=14)
         ax.grid(True)
         plt.tight_layout()
         plt.savefig("./outputs/dice_vs_training_time.png", dpi=120)
@@ -340,10 +367,13 @@ def create_plots(metrics_dict: Dict):
                 linestyle="-",
             )
 
-        ax.set_xlabel("Epochs")
-        ax.set_ylabel("Dice")
-        ax.set_title("Epochs vs Dice - Best LoRA vs Full Fine-tuning")
-        ax.legend()
+        ax.set_xlabel("Epochs", fontsize=14)
+        ax.set_ylabel("Dice", fontsize=14)
+        ax.set_title("Epochs vs Dice - Best LoRA vs Full Fine-tuning", fontsize=14)
+        ax.tick_params(
+            axis="both", which="major", labelsize=14
+        )  # Increase tick label font size
+        ax.legend(fontsize=14)
         ax.grid(True)
         plt.tight_layout()
         plt.savefig("./outputs/epochs_vs_dice.png", dpi=120)
