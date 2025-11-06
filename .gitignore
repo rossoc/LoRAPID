@@ -185,5 +185,4 @@ cython_debug/
 
 wandb
 
-outputs/*
 !outputs/.gitkeep
