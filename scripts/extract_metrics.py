@@ -233,20 +233,20 @@ def create_plots(metrics_dict: Dict):
         epochs_eval_lora = list(range(len(best_lora_metrics["eval_loss"])))
 
         # Define a color for LoRA (using a distinct color)
-        lora_color = 'blue'
+        lora_color = "blue"
         ax.plot(
             epochs_train_lora,
             best_lora_metrics["train_loss"],
             label=f"Best LoRA Train (r={lora_results[best_lora_folder]['rank']}, a={lora_results[best_lora_folder]['alpha']})",
             linestyle="--",
-            color=lora_color
+            color=lora_color,
         )
         ax.plot(
             epochs_eval_lora,
             best_lora_metrics["eval_loss"],
             label=f"Best LoRA Eval (r={lora_results[best_lora_folder]['rank']}, a={lora_results[best_lora_folder]['alpha']})",
             linestyle="-",
-            color=lora_color
+            color=lora_color,
         )
 
         # Plot baseline (full fine-tuning) losses with same color
@@ -255,20 +255,20 @@ def create_plots(metrics_dict: Dict):
             epochs_eval_baseline = list(range(len(metrics["eval_loss"])))
 
             # Define a color for full fine-tuning (using a different distinct color)
-            fft_color = 'red'
+            fft_color = "red"
             ax.plot(
                 epochs_train_baseline,
                 metrics["train_loss"],
                 label=f"Full Fine-tuning Train ({folder_name})",
                 linestyle="--",
-                color=fft_color
+                color=fft_color,
             )
             ax.plot(
                 epochs_eval_baseline,
                 metrics["eval_loss"],
                 label=f"Full Fine-tuning Eval ({folder_name})",
                 linestyle="-",
-                color=fft_color
+                color=fft_color,
             )
 
         ax.set_xlabel("Epochs", fontsize=14)
